@@ -70,7 +70,7 @@ def move_pub(rate, st, run_event):
         
 # expected user input
 def usage():
-    print "usage: [p [x] [y] [z] [y]| c [r] [ax] [bx] [cx] | mode [MODE] | arm [BOOL] | exit]"
+    print "usage: [d [x] [y] [z] [y] | p [x] [y] [z] [y] | c [r] [ax] [bx] [cx] | mode [MODE] | arm | disarm | exit]"
     
         
   
@@ -83,7 +83,7 @@ def run_tests():
 
 
     # ros node initalization
-    nh = rospy.init_node('interatction', anonymous=True)
+    nh = rospy.init_node('interaction', anonymous=True)
     
     
         
@@ -119,9 +119,6 @@ def run_tests():
     # signal flag for running threads
     run_event = threading.Event()
     run_event.set()
-    
-
-
 
     # thread that sends position
     #move_t = threading.Thread(target=move_pub, args=(rate, pub_pose, pose_msg, pub_twist, twist_msg, state, run_event))
@@ -149,11 +146,15 @@ def run_tests():
     # go into offboard mode
     drv.set_mode("OFFBOARD")
     
+    pose_rel = [0, 0, 1, 0]
+    st.set_state("posctr")
+    sp.do_step(pose_rel)
+
     # arm
     drv.arm(True)
     
     # wait some seconds until reaching hover position
-    time.sleep(6.0)
+    time.sleep(1.0)
     
     interactive_mode = True
     # main loop in manual mode
@@ -162,8 +163,8 @@ def run_tests():
         # show usage
         usage()
         
-        
-        while 1:
+        do_loop = True
+        while do_loop:
 
             # read input from console
             user_input = sys.stdin.readline()
@@ -186,10 +187,11 @@ def run_tests():
                 # leave program
                 if str(args[0]) == "exit":
                     print "leaving program"
-                    ctrlC_handler(0,0)
-               
+                    #ctrlC_handler(0,0)
+                    do_loop = False
+
                 # set position    
-                elif str(args[0]) == "p":
+                elif str(args[0]) == "d":
                     # reset relative position
                     reset(pose_rel)
                     
@@ -219,7 +221,37 @@ def run_tests():
                                 
                         st.set_state("posctr")      
                         sp.do_step(pose_rel)
-                        
+                        # set position
+                elif str(args[0]) == "p":
+                    # reset relative position
+                    reset(pose_rel)
+
+                    # close circle thread if running
+                    follow_thr.stop_thread()
+
+
+                    # set new relative position
+
+                    if len(args[1:]) > 4:
+                        print "too many arguments"
+                        usage()
+
+                    elif len(args[1:]) < 4:
+                        print "not enough arguments"
+                        usage()
+
+                    else:
+                        for ind, arg in enumerate(args[1:]):
+
+                            if if_isNum(arg):
+                                pose_rel[ind] = float(arg)
+
+                            else:
+                                print arg + " is not a number"
+                                reset(pose_rel)
+
+                        st.set_state("posctr")
+                        sp.go_to_pose(pose_rel)
                         
                 # bezier point
                 elif str(args[0]) == "b":
@@ -270,7 +302,12 @@ def run_tests():
                 elif str(args[0]) == "arm":
                     drv.arm(True)
                     
-                    
+                # disarm
+                elif str(args[0]) == "disarm":
+                    # start landing
+                    print "start landing"
+                    drv.land()
+
                 # path mode
                 elif str(args[0]) == "c":
                     
@@ -323,7 +360,7 @@ def run_tests():
     # join thread
     run_event.clear()
     move_t.join()
-
+    ctrlC_handler(0,0)
         
   
 

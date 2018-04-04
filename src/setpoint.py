@@ -47,9 +47,45 @@ class setpoint():
         
         self._state.set_msg(pts)
         
+
+    def euler_to_quaternion(self, yaw, roll, pitch):
+        # w,x,y,z
+        q = [0,0,0,0]
+        t0 = np.cos(yaw * 0.5);
+        t1 = np.sin(yaw * 0.5);
+        t2 = np.cos(roll * 0.5);
+        t3 = np.sin(roll * 0.5);
+        t4 = np.cos(pitch * 0.5);
+        t5 = np.sin(pitch * 0.5);
+        q[0] = t2 * t4 * t0 + t3 * t5 * t1  #w
+        q[1] = t3 * t4 * t0 - t2 * t5 * t1  #x
+        q[2] = t2 * t5 * t0 + t3 * t4 * t1  #y
+        q[3] = t2 * t4 * t1 - t3 * t5 * t0  #z
+        return q
         
-        
-        
+    def go_to_pose(self, step):
+        print 'go to pose'
+
+        # convert yaw to desire orientation
+        yaw = step[3]
+        pitch = 0
+        roll = 0
+
+        q = self.euler_to_quaternion(yaw, pitch, roll)
+
+        # desire step
+        des_pose = [0,0,0,0,0,0,0]
+        des_pose[0] = step[0]
+        des_pose[1] = step[1]
+        des_pose[2] = step[2]
+        des_pose[3] = q[2]  #x
+        des_pose[4] = q[1]  #y
+        des_pose[5] = q[3]  #z   -> works with JMAVSim
+        des_pose[6] = q[0]  #w
+
+        print des_pose
+        self._state.set_msg(des_pose)
+
         
     def do_step_in_pose(self, step):
         
