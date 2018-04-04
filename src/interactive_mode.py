@@ -78,14 +78,10 @@ def usage():
   
 # main thread
 def run_tests():
-
     ### initlaization
-
 
     # ros node initalization
     nh = rospy.init_node('interaction', anonymous=True)
-    
-    
         
     # create driver for receiving mavros msg
     drv = mavros_driver.mavros_driver(nh)
@@ -101,11 +97,9 @@ def run_tests():
     # state: posctr, velctr
     st = state.state(lock, drv)
 
-    
     # paths
     path = paths.paths(st, target)
 
-    
     # modes
     sp = setpoint.setpoint(st, target) #set points
     #cl = circle.circle(st, target) #circle mode
@@ -137,8 +131,7 @@ def run_tests():
         follow_thr.stop_thread()
         print "> threads succesfully closed. Leaving program"
         sys.exit()
-    
-    
+     
     # catch ctrl-c
     signal.signal(signal.SIGINT, ctrlC_handler)
     print "set offboard"
@@ -168,7 +161,6 @@ def run_tests():
 
             # read input from console
             user_input = sys.stdin.readline()
-            
             
             # split input
             args = user_input.split()
