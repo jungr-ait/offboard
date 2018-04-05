@@ -13,7 +13,7 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseStamped, Quaternion, TwistStamped
 
-
+# import mavros
 import threading
 import sys
 import time 
@@ -35,7 +35,8 @@ from tf.transformations import * #quaternion_from_euler, quaternion_multiply, qu
 # desire relative pose
 pose_rel = [0.0,0.0,0.0,0.0]
 
-
+#command received from the mission planner
+cmd_move = ""
 
 
 # function to reset variable
@@ -74,11 +75,15 @@ def usage():
     
         
   
-  
+def get_dog_position(cmd):
+    global cmd_move
+    cmd_move = cmd
   
 # main thread
 def run_tests():
     ### initlaization
+    global cmd_move
+
 
     # ros node initalization
     nh = rospy.init_node('interaction', anonymous=True)
@@ -110,6 +115,8 @@ def run_tests():
     # pose publisher rate
     rate = 20
 
+    rospy.Subscriber("mavros/cmd_pub", String, get_dog_position,  queue_size = 1)
+
     # signal flag for running threads
     run_event = threading.Event()
     run_event.set()
@@ -139,9 +146,9 @@ def run_tests():
     # go into offboard mode
     drv.set_mode("OFFBOARD")
     
-    pose_rel = [0, 0, 1, 0]
-    st.set_state("posctr")
-    sp.do_step(pose_rel)
+    # pose_rel = [0, 0, 1, 0]
+    # st.set_state("posctr")
+    # sp.do_step(pose_rel)
 
     # arm
     drv.arm(True)
@@ -159,183 +166,191 @@ def run_tests():
         do_loop = True
         while do_loop:
 
-            # read input from console
-            user_input = sys.stdin.readline()
             
             # split input
-            args = user_input.split()
+            # args = user_input.split()
             
-            # cases
-            if len(args) > 5:
-                print "too many argumets"
-                usage()
-            
-            elif len(args) == 0:
-                print "no argument given"
-                usage()
-                
-            else:
-                
-                # leave program
-                if str(args[0]) == "exit":
-                    print "leaving program"
-                    #ctrlC_handler(0,0)
-                    do_loop = False
+            args_list = []
 
-                # set position    
-                elif str(args[0]) == "d":
-                    # reset relative position
-                    reset(pose_rel)
-                    
-                    # close circle thread if running
-                    follow_thr.stop_thread()
-                
-                    
-                    # set new relative position 
-                    
-                    if len(args[1:]) > 4:
-                        print "too many arguments"
-                        usage()
-                        
-                    elif len(args[1:]) < 4:
-                        print "not enough arguments"
-                        usage()
-                    
-                    else:
-                        for ind, arg in enumerate(args[1:]):
-                        
-                            if if_isNum(arg):   
-                                pose_rel[ind] = float(arg)
-                        
-                            else:
-                                print arg + " is not a number"
-                                reset(pose_rel)
-                                
-                        st.set_state("posctr")      
-                        sp.do_step(pose_rel)
-                        # set position
-                elif str(args[0]) == "p":
-                    # reset relative position
-                    reset(pose_rel)
+            if cmd_move != "":
+                args_list = cmd_move.data.splitlines()
 
-                    # close circle thread if running
-                    follow_thr.stop_thread()
+            cmd_move = ""
 
+            for args_item in args_list:
 
-                    # set new relative position
-
-                    if len(args[1:]) > 4:
-                        print "too many arguments"
-                        usage()
-
-                    elif len(args[1:]) < 4:
-                        print "not enough arguments"
-                        usage()
-
-                    else:
-                        for ind, arg in enumerate(args[1:]):
-
-                            if if_isNum(arg):
-                                pose_rel[ind] = float(arg)
-
-                            else:
-                                print arg + " is not a number"
-                                reset(pose_rel)
-
-                        st.set_state("posctr")
-                        sp.go_to_pose(pose_rel)
-                        
-                # bezier point
-                elif str(args[0]) == "b":
-                    
-                    # reset relative position
-                    reset(pose_rel)
-                    
-                    # close circle thread if running
-                    follow_thr.stop_thread()
-                
-                    # set new relative position 
-                    
-                    if len(args[1:]) > 4:
-                        print "too many arguments"
-                        usage()
-                        
-                    elif len(args[1:]) < 4:
-                        print "not enough arguments"
-                        usage()
-                    
-                    else:
-                        for ind, arg in enumerate(args[1:]):
-                        
-                            if if_isNum(arg):   
-                                pose_rel[ind] = float(arg)
-                        
-                            else:
-                                print arg + " is not a number"
-                                reset(pose_rel)
-                                
-                        st.set_state("bezier")        
-                        sp.do_step_bez(pose_rel)
-                 
-                    
-                    
-                # set mode
-                elif str(args[0]) == "mode":
-                    
-                    mode = args[1].upper()
-                
-                    if str(mode) == "OFFBOARD":
-                        # go into offboard mode
-                        drv.set_mode("OFFBOARD")
-                    else:
-                        print "This mode is not yet supported"
-                
-                # arm
-                elif str(args[0]) == "arm":
-                    drv.arm(True)
-                    
-                # disarm
-                elif str(args[0]) == "disarm":
-                    # start landing
-                    print "start landing"
-                    drv.land()
-
-                # path mode
-                elif str(args[0]) == "c":
-                    
-                    # close circle thread if running
-                    follow_thr.stop_thread()
-          
-                        
-                    correct_input = True
-                    if len(args[1:]) > 4:
-                        print "too many arguments"
-                        usage()
-                    
-                    elif len(args[1:]) <4:
-                        print "too few arguments"
-                        usage()
-                    else:
-                        axis = []
-                        for ind, arg in enumerate(args[2:]):
-                            if if_isNum(arg):
-                                axis.append(float(arg))
-                            else:
-                                print arg + "not a number"
-                                correct_input = False
-                        radius = 0.0        
-                        if if_isNum(args[1]):
-                            radius = float(args[1])
-                        
-                        if correct_input:    
-                            path.circle(radius, axis, [1.0,0.0,0.0])
-                    
-                            # start thread
-                            follow_thr.start_thread()
-       
-                else:
-                    print "this input is not supported"
+                args = args_item.split()
+                # cases
+                if len(args) > 5:
+                    print "too many argumets"
                     usage()
+                
+                elif len(args) == 0:
+                    print "no argument given"
+                    usage()
+                    
+                else:
+                    
+                    # leave program
+                    if str(args[0]) == "exit":
+                        print "leaving program"
+                        #ctrlC_handler(0,0)
+                        do_loop = False
+
+                    # set position    
+                    elif str(args[0]) == "d":
+                        # reset relative position
+                        reset(pose_rel)
+                        
+                        # close circle thread if running
+                        follow_thr.stop_thread()
+                    
+                        
+                        # set new relative position 
+                        
+                        if len(args[1:]) > 4:
+                            print "too many arguments"
+                            usage()
+                            
+                        elif len(args[1:]) < 4:
+                            print "not enough arguments"
+                            usage()
+                        
+                        else:
+                            for ind, arg in enumerate(args[1:]):
+                            
+                                if if_isNum(arg):   
+                                    pose_rel[ind] = float(arg)
+                            
+                                else:
+                                    print arg + " is not a number"
+                                    reset(pose_rel)
+                                    
+                            st.set_state("posctr")      
+                            sp.do_step(pose_rel)
+                            # set position
+                    elif str(args[0]) == "p":
+                        # reset relative position
+                        reset(pose_rel)
+
+                        # close circle thread if running
+                        follow_thr.stop_thread()
+
+
+                        # set new relative position
+
+                        if len(args[1:]) > 4:
+                            print "too many arguments"
+                            usage()
+
+                        elif len(args[1:]) < 4:
+                            print "not enough arguments"
+                            usage()
+
+                        else:
+                            for ind, arg in enumerate(args[1:]):
+
+                                if if_isNum(arg):
+                                    pose_rel[ind] = float(arg)
+
+                                else:
+                                    print arg + " is not a number"
+                                    reset(pose_rel)
+
+                            st.set_state("posctr")
+                            sp.go_to_pose(pose_rel)
+                            
+                    # bezier point
+                    elif str(args[0]) == "b":
+                        
+                        # reset relative position
+                        reset(pose_rel)
+                        
+                        # close circle thread if running
+                        follow_thr.stop_thread()
+                    
+                        # set new relative position 
+                        
+                        if len(args[1:]) > 4:
+                            print "too many arguments"
+                            usage()
+                            
+                        elif len(args[1:]) < 4:
+                            print "not enough arguments"
+                            usage()
+                        
+                        else:
+                            for ind, arg in enumerate(args[1:]):
+                            
+                                if if_isNum(arg):   
+                                    pose_rel[ind] = float(arg)
+                            
+                                else:
+                                    print arg + " is not a number"
+                                    reset(pose_rel)
+                                    
+                            st.set_state("bezier")        
+                            sp.do_step_bez(pose_rel)
+                     
+                        
+                        
+                    # set mode
+                    elif str(args[0]) == "mode":
+                        
+                        mode = args[1].upper()
+                    
+                        if str(mode) == "OFFBOARD":
+                            # go into offboard mode
+                            drv.set_mode("OFFBOARD")
+                        else:
+                            print "This mode is not yet supported"
+                    
+                    # arm
+                    elif str(args[0]) == "arm":
+                        drv.arm(True)
+                        
+                    # disarm
+                    elif str(args[0]) == "disarm":
+                        # start landing
+                        print "start landing"
+                        drv.land()
+
+                    # path mode
+                    elif str(args[0]) == "c":
+                        
+                        # close circle thread if running
+                        follow_thr.stop_thread()
+              
+                            
+                        correct_input = True
+                        if len(args[1:]) > 4:
+                            print "too many arguments"
+                            usage()
+                        
+                        elif len(args[1:]) <4:
+                            print "too few arguments"
+                            usage()
+                        else:
+                            axis = []
+                            for ind, arg in enumerate(args[2:]):
+                                if if_isNum(arg):
+                                    axis.append(float(arg))
+                                else:
+                                    print arg + "not a number"
+                                    correct_input = False
+                            radius = 0.0        
+                            if if_isNum(args[1]):
+                                radius = float(args[1])
+                            
+                            if correct_input:    
+                                path.circle(radius, axis, [1.0,0.0,0.0])
+                        
+                                # start thread
+                                follow_thr.start_thread()
+       
+                    else:
+                        print "this input is not supported"
+                        usage()
                         
                         
             
