@@ -151,7 +151,7 @@ def run_tests():
     # sp.do_step(pose_rel)
 
     # arm
-    drv.arm(True)
+    # drv.arm(True)
     
     # wait some seconds until reaching hover position
     time.sleep(1.0)

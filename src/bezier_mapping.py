@@ -7,7 +7,7 @@ Created on Fri Sep 16 23:28:53 2016
 """
 
 import rospy
-from mavros_msgs.msg import State, AttitudeTarget, PositionTarget, AvoidanceTriplet
+from mavros_msgs.msg import State, AttitudeTarget, PositionTarget#, AvoidanceTriplet
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3Stamped, Quaternion, Vector3, Point
 from sensor_msgs.msg import Imu
@@ -79,9 +79,9 @@ class mapping():
         self._vel_yaw_msg.type_mask = 1 + 2 + 4 + 64 + 128 + 256 + 2048
         
         # path bezier triplet send
-        self._bezier_triplet_pub = rospy.Publisher('/mavros/avoidance_triplet', AvoidanceTriplet, queue_size=10)
-        self._bezier_triplet_msg = AvoidanceTriplet()
-        self._bezier_duration = 1.0
+        # self._bezier_triplet_pub = rospy.Publisher('/mavros/avoidance_triplet', AvoidanceTriplet, queue_size=10)
+        # self._bezier_triplet_msg = AvoidanceTriplet()
+        # self._bezier_duration = 1.0
         
         
         
@@ -164,7 +164,7 @@ class mapping():
 
         
         # get closest point p*, velocity v* and acceleration a*
-        p_star, v_star, a_star = bf.point_closest_to_bezier(bz, p_c, self._bezier_duration)
+        # p_star, v_star, a_star = bf.point_closest_to_bezier(bz, p_c, self._bezier_duration)
         
         
         '''p_star = np.array([0.0,0.0,5.0])
