@@ -302,6 +302,9 @@ def run_tests():
                         if str(mode) == "OFFBOARD":
                             # go into offboard mode
                             drv.set_mode("OFFBOARD")
+                        elif str(mode) == "POSITION":
+                            # go into position control mode
+                            drv.set_mode("POSCTL")
                         else:
                             print "This mode is not yet supported"
                     
