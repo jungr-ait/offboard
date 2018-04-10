@@ -305,6 +305,9 @@ def run_tests():
                         elif str(mode) == "POSITION":
                             # go into position control mode
                             drv.set_mode("POSCTL")
+                        elif str(mode) == "ALTITUDE":
+                            # go into altitude control mode
+                            drv.set_mode("ALTCTL")
                         else:
                             print "This mode is not yet supported"
                     
